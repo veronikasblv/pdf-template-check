@@ -1,33 +1,28 @@
 #!/usr/bin/python
 
-from sys import argv, version_info
+from sys import version_info, argv
 import os
 from PDFlib.TET import *
-
-globaloptlist = ""
-docoptlist = ""
-pageoptlist = "granularity=line"
-
-titlesize = 14
-template_size = 10
-template_font = "TimesNewRoman"
-titlefont = "Bold"
-template_width = 148
-template_height = 210
-texttrigger = "Аннотация"
+from bs4 import BeautifulSoup as bs
+from header import *
 
 pageno = 0
 
 tet = TET()
-if (version_info[0] < 3):
+if version_info[0] < 3:
     fp = open(argv[2], 'w')
+    fc = open(argv[3], 'w')
 else:
     fp = open(argv[2], 'w', 2, 'utf-8')
+    fc = open(argv[3], 'w', 2, 'utf-8')
 
 directory = argv[1]
 for fname in os.listdir(directory):
     f = os.path.join(directory, fname)
     if os.path.isfile(f) and f.endswith('.pdf'):
+        title = False
+        by = False
+        abstract = False
 
         tet.set_option(globaloptlist)
         doc = tet.open_document(f, docoptlist)
@@ -36,46 +31,105 @@ for fname in os.listdir(directory):
         filename = f.split("\\")[-1]
         fp.write("\n- file: %s" % filename)
 
-        width = round(tet.pcos_get_number(doc, "pages[%d]/width" % 0) * 25.4 / 72, 0)
-        height = round(tet.pcos_get_number(doc, "pages[%d]/height" % 0) * 25.4 / 72, 0)
-        if width != template_width or height != template_height:
-            print("[Неверный формат страницы в %s: %dmm x %dmm]" % (filename, width, height))
+        # page size check
+        pixel_width = tet.pcos_get_number(doc, "pages[0]/width")
+        pixel_height = tet.pcos_get_number(doc, "pages[0]/height")
+        mm_width = to_mm(pixel_width)
+        mm_height = to_mm(pixel_height)
+        if mm_width != TEMPLATE_WIDTH or mm_height != TEMPLATE_HEIGHT:
+            fc.write("\n[Неверный формат страницы (%dmm x %dmm) в %s]" % (mm_width, mm_height, filename))
 
-        title = False
-        by = False
-        for pageno in range(1, int(n_pages) + 1):
-            page = tet.open_page(doc, pageno, pageoptlist)
+        # metadata extraction
+        page = tet.open_page(doc, 1, pageoptlist)
+        text = tet.get_text(page)
+        tet.close_page(page)
 
-            text = tet.get_text(page)
-            while (text != None and text != texttrigger):
-
-                ci = tet.get_char_info(page)
-                fontname = tet.pcos_get_string(doc, "fonts[%d]/name" % ci["fontid"])
-                fontsize = round(ci["fontsize"], 0)
-
-                if fontsize == titlesize and titlefont in fontname and template_font in fontname:
-                    if not title:
-                        title = True
-                        fp.write("\n  title: " + text)
-                    else:
-                        fp.write(" " + text)
-                elif fontsize == template_size and template_font in fontname and titlefont not in fontname:
-                    author = text.split(",")[0]
-                    if author[0].isupper() and author.count(".") == 2:
+        paras = text.split('\u2029')
+        for para in paras:
+            if para == TEXTTRIGGER:
+                break
+            if not title:
+                fp.write("\n  title: " + para.replace('\n', ' '))
+                title = True
+            else:
+                para = para.replace(',', '\n')
+                parts = para.split('\n')
+                for part in parts:
+                    if is_author(part):
                         if not by:
+                            fp.write("\n  by: " + part)
                             by = True
-                            fp.write("\n  by: " + author)
                         else:
-                            fp.write(", " + author)
-                else:
-                    print("[Неверный шрифт в %s: %s %d] %s\n" % (filename, fontname, fontsize, text))
+                            fp.write(", " + part)
 
-                text = tet.get_text(page)
+        # margins and fonts
+        for pageno in range(1, int(n_pages) + 1):
+
+            page = tet.open_page(doc, pageno, pageoptlist)
+            tet.process_page(doc, pageno, pageoptlist)
+            tetml = tet.get_tetml(doc, "")
+            soup = bs(tetml, 'xml')
+
+            boxes = soup.find_all('Box')
+            top_margin = to_mm(boxes[0]['ury'])
+            bottom_margin = to_mm(pixel_height - float(boxes[-1]['lly']))
+
+            # top margin
+            tmcheck = TOP_MARGIN_TEMPLATE
+            if pageno == 1:
+                tmcheck = MARGIN_TEMPLATE
+            if tmcheck - top_margin > DELTA or tmcheck - top_margin < 0:
+                fc.write("\n[Неверный размер верхнего поля (%dmm) в %s (стр %d)]\n" % (top_margin, filename, pageno))
+
+            # bottom margin
+            if pageno == int(n_pages):
+                if bottom_margin - MARGIN_TEMPLATE < 0:
+                    fc.write("\n[Неверный размер нижнего поля (%dmm) в %s (стр %d)]\n" % (bottom_margin, filename, pageno))
+            else:
+                if bottom_margin - MARGIN_TEMPLATE > DELTA or bottom_margin - MARGIN_TEMPLATE < 0:
+                    fc.write("\n[Неверный размер нижнего поля (%dmm) в %s (стр %d)]\n" % (bottom_margin, filename, pageno))
+
+            # side margins and fonts
+            tet.get_text(page)
+            for box in boxes:
+                left_margin = to_mm(box['llx'])
+                right_margin = to_mm(pixel_width - float(box['urx']))
+                para_texts = box.find_all("Text")
+                for para_text in para_texts:
+                    paragraph = para_text.string
+                    if paragraph == ABSTRACT_END:
+                        abstract = False
+                    mcheck = MARGIN_TEMPLATE
+                    if abstract:
+                        mcheck = ABSTRACT_MARGIN
+
+                    fonts = set()
+                    for _ in range(len(paragraph)):
+                        ci = tet.get_char_info(page)
+                        fontname = tet.pcos_get_string(doc, "fonts[%d]/name" % ci["fontid"])
+                        fontsize = round(ci["fontsize"], 0)
+                        fonts.add((fontname, fontsize))
+
+                    for font in fonts:
+                        category = font_category(font[0], font[1])
+                        if category is None:
+                            fc.write("\n[Неверный шрифт (%s %d) в %s (стр %d)]: %s\n" % (font[0], font[1], filename,
+                                                                                         pageno, paragraph))
+                        elif category == "LISTING" and len(fonts) == 1:
+                            mcheck = LISTING_MARGIN
+                        if left_margin < mcheck or right_margin < mcheck:
+                            fc.write("\n[Неверный размер боковых полей (%d, %d) в %s (стр %d)]: %s\n"
+                                     % (left_margin, right_margin, filename, pageno, paragraph))
+
+                    if paragraph == TEXTTRIGGER:
+                        abstract = True
+                    ci = tet.get_char_info(page)
 
             tet.close_page(page)
-            if text == texttrigger:
-                break
+
+        tet.process_page(doc, 0, "tetml={trailer}")
         tet.close_document(doc)
-        fp.write("\n")
+        fp.write("\n\n")
+        fc.write("\n\n")
 
 tet.delete()
