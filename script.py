@@ -1,14 +1,12 @@
 #!/usr/bin/python
 
-from sys import version_info #, argv
+from sys import version_info, argv
 import os
 from PDFlib.TET import *
 from bs4 import BeautifulSoup as bs
 from header import *
 
 pageno = 0
-
-argv = ["script.py", "spisok", "s.yml", "s.txt"]
 
 tet = TET()
 if version_info[0] < 3:
