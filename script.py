@@ -1,12 +1,14 @@
 #!/usr/bin/python
 
-from sys import version_info, argv
+from sys import version_info #, argv
 import os
 from PDFlib.TET import *
 from bs4 import BeautifulSoup as bs
 from header import *
 
 pageno = 0
+
+argv = ["script.py", "spisok", "s.yml", "s.txt"]
 
 tet = TET()
 if version_info[0] < 3:
@@ -106,20 +108,25 @@ for fname in os.listdir(directory):
                     fonts = set()
                     for _ in range(len(paragraph)):
                         ci = tet.get_char_info(page)
-                        fontname = tet.pcos_get_string(doc, "fonts[%d]/name" % ci["fontid"])
-                        fontsize = round(ci["fontsize"], 0)
-                        fonts.add((fontname, fontsize))
+                        if len(ci) > 0:
+                            fontname = tet.pcos_get_string(doc, "fonts[%d]/name" % ci["fontid"])
+                            fontsize = round(ci["fontsize"], 0)
+                            fonts.add((fontname, fontsize))
 
+                    margin_check = False
                     for font in fonts:
                         category = font_category(font[0], font[1])
                         if category is None:
                             fc.write("\n[Неверный шрифт (%s %d) в %s (стр %d)]: %s\n" % (font[0], font[1], filename,
                                                                                          pageno, paragraph))
-                        elif category == "LISTING" and len(fonts) == 1:
-                            mcheck = LISTING_MARGIN
-                        if left_margin < mcheck or right_margin < mcheck:
-                            fc.write("\n[Неверный размер боковых полей (%d, %d) в %s (стр %d)]: %s\n"
-                                     % (left_margin, right_margin, filename, pageno, paragraph))
+                        if left_margin == right_margin and left_margin >= mcheck:
+                            margin_check = True
+                        elif (left_margin == mcheck or left_margin == mcheck + SIDE_DELTA) and right_margin >= mcheck:
+                            margin_check = True
+
+                    if not margin_check:
+                        fc.write("\n[Неверный размер боковых полей (%d, %d) в %s (стр %d)]: %s\n"
+                                 % (left_margin, right_margin, filename, pageno, paragraph))
 
                     if paragraph == TEXTTRIGGER:
                         abstract = True
