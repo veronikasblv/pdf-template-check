@@ -28,7 +28,7 @@ for fname in os.listdir(directory):
         doc = tet.open_document(f, docoptlist)
         n_pages = tet.pcos_get_number(doc, "length:pages")
 
-        filename = f.split("\\")[-1]
+        filename = f.split("/")[-1]
         fp.write("\n- file: %s" % filename)
 
         # page size check
