@@ -13,8 +13,10 @@ def is_author(text):
             dot = True
     return dot and up_let
 
+
 def to_mm(pixels):
     return round(float(pixels) * 25.4 / 72, 0)
+
 
 def font_category(fontname, fontsize):
     if "TimesNewRoman" in fontname:
@@ -34,11 +36,11 @@ def font_category(fontname, fontsize):
         return "FORMULA"
     return None
 
+
 globaloptlist = ""
 docoptlist = "tetml = {elements={annotations=false attachments=false bookmarks=false destinations=false" \
              " docinfo=false fields=false javascripts=false metadata=false options=false}} paraseparator=U+2029"
 pageoptlist = "granularity=page topdown={output} structureanalysis={list=false}"
-
 
 TEMPLATE_WIDTH = 148
 TEMPLATE_HEIGHT = 210
@@ -47,7 +49,7 @@ ABSTRACT_END = "Введение"
 TOP_MARGIN_TEMPLATE = 23
 MARGIN_TEMPLATE = 17
 ABSTRACT_MARGIN = MARGIN_TEMPLATE + 10
-LISTING_MARGIN = MARGIN_TEMPLATE + 5
 
 DEFAULT_FONTSIZE = 10
 DELTA = to_mm(DEFAULT_FONTSIZE * 4 / 3)
+SIDE_DELTA = 5
