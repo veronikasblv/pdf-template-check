@@ -104,12 +104,12 @@ for fname in os.listdir(directory):
                         mcheck = ABSTRACT_MARGIN
 
                     fonts = set()
-                    for _ in range(len(paragraph)):
+                    ci = tet.get_char_info(page)
+                    while len(ci) > 0 and ci["uv"] != 8233:
+                        fontname = tet.pcos_get_string(doc, "fonts[%d]/name" % ci["fontid"])
+                        fontsize = round(ci["fontsize"], 0)
+                        fonts.add((fontname, fontsize))
                         ci = tet.get_char_info(page)
-                        if len(ci) > 0:
-                            fontname = tet.pcos_get_string(doc, "fonts[%d]/name" % ci["fontid"])
-                            fontsize = round(ci["fontsize"], 0)
-                            fonts.add((fontname, fontsize))
 
                     margin_check = False
                     for font in fonts:
