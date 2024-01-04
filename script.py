@@ -106,17 +106,16 @@ for fname in os.listdir(directory):
                         fonts.add((fontname, fontsize))
                         ci = tet.get_char_info(page)
 
-                    margin_check = False
                     for font in fonts:
                         category = font_category(font[0], font[1])
                         if category is None:
                             fc.write("\n[Неверный шрифт (%s %d) в %s (стр %d)]: %s\n" % (font[0], font[1], filename,
                                                                                          pageno, paragraph))
-                        if left_margin == right_margin and left_margin >= mcheck:
-                            margin_check = True
-                        elif (left_margin == mcheck or left_margin == mcheck + SIDE_DELTA) and right_margin >= mcheck:
-                            margin_check = True
-
+                    margin_check = False
+                    if left_margin == right_margin and left_margin >= mcheck:
+                        margin_check = True
+                    elif (left_margin == mcheck or left_margin == mcheck + SIDE_DELTA) and right_margin >= mcheck:
+                        margin_check = True
                     if not margin_check:
                         fc.write("\n[Неверный размер боковых полей (%d, %d) в %s (стр %d)]: %s\n"
                                  % (left_margin, right_margin, filename, pageno, paragraph))
