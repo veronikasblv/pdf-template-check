@@ -9,13 +9,8 @@ from header import *
 pageno = 0
 
 tet = TET()
-if version_info[0] < 3:
-    fp = open("section.yml" , 'w')
-    fc = open("mistakes.txt", 'w')
-else:
-    fp = open("section.yml", 'w', 2, 'utf-8')
-    fc = open("mistakes.txt", 'w', 2, 'utf-8')
-
+fp = open("section.yml", 'w', 2, 'utf-8')
+fc = open("mistakes.txt", 'w', 2, 'utf-8')
 directory = argv[1]
 for fname in os.listdir(directory):
     f = os.path.join(directory, fname)
