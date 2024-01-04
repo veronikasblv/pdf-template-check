@@ -10,11 +10,11 @@ pageno = 0
 
 tet = TET()
 if version_info[0] < 3:
-    fp = open(argv[2], 'w')
-    fc = open(argv[3], 'w')
+    fp = open("section.yml" , 'w')
+    fc = open("mistakes.txt", 'w')
 else:
-    fp = open(argv[2], 'w', 2, 'utf-8')
-    fc = open(argv[3], 'w', 2, 'utf-8')
+    fp = open("section.yml", 'w', 2, 'utf-8')
+    fc = open("mistakes.txt", 'w', 2, 'utf-8')
 
 directory = argv[1]
 for fname in os.listdir(directory):
