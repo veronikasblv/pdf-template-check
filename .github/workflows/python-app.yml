@@ -26,7 +26,7 @@ jobs:
         pip install lxml
     - name: Run code
       run: |
-        python script.py . section.yml mistakes.txt
+        python script.py .
     - name: Upload output file
       uses: actions/upload-artifact@v3
       with:
@@ -37,7 +37,7 @@ jobs:
     - name: Commit report
       run: |
           git config --global user.email "you@example.com"
-          git config --global user.name "Your Name"
+          git config --global user.name "veronikasblv"
           
           git add section.yml mistakes.txt
           git commit -m "Automated report"
